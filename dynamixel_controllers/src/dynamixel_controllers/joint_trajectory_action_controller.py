@@ -53,7 +53,7 @@ from trajectory_msgs.msg import JointTrajectory
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryFeedback
 from control_msgs.msg import FollowJointTrajectoryResult
-
+from sensor_msgs.msg import JointState
 
 class Segment():
     def __init__(self, num_joints):
@@ -112,6 +112,11 @@ class JointTrajectoryActionController():
         self.msg.error.positions = [0.0] * self.num_joints
         self.msg.error.velocities = [0.0] * self.num_joints
         
+        self.joint_msg = JointState()
+        self.joint_msg.name = self.joint_names
+        self.joint_msg.position = [0.0] * self.num_joints
+        self.joint_msg.velocity = [0.0] * self.num_joints
+        self.joint_msg.effort = [0.0] * self.num_joints
         return True
 
 
@@ -120,6 +125,7 @@ class JointTrajectoryActionController():
         
         self.command_sub = rospy.Subscriber(self.controller_namespace + '/command', JointTrajectory, self.process_command)
         self.state_pub = rospy.Publisher(self.controller_namespace + '/state', FollowJointTrajectoryFeedback)
+        self.joint_state_pub = rospy.Publisher('/joint_states', JointState)
         self.action_server = actionlib.SimpleActionServer(self.controller_namespace + '/follow_joint_trajectory',
                                                           FollowJointTrajectoryAction,
                                                           execute_cb=self.process_follow_trajectory,
@@ -338,7 +344,7 @@ class JointTrajectoryActionController():
         rate = rospy.Rate(self.state_update_rate)
         while self.running and not rospy.is_shutdown():
             self.msg.header.stamp = rospy.Time.now()
-            
+            self.joint_msg.header.stamp = rospy.Time.now()
             # Publish current joint state
             for i, joint in enumerate(self.joint_names):
                 state = self.joint_states[joint]
@@ -347,5 +353,10 @@ class JointTrajectoryActionController():
                 self.msg.error.positions[i] = self.msg.actual.positions[i] - self.msg.desired.positions[i]
                 self.msg.error.velocities[i] = self.msg.actual.velocities[i] - self.msg.desired.velocities[i]
                 
+                self.joint_msg.position[i] = state.current_pos
+                self.joint_msg.velocity[i] = abs(state.velocity)
+                self.joint_msg.effort[i] = state.load
+                
             self.state_pub.publish(self.msg)
+            self.joint_state_pub.publish(self.joint_msg)
             rate.sleep()

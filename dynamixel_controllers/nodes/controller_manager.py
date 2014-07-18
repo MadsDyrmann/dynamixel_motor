@@ -177,7 +177,7 @@ class ControllerManager:
             else:
                 dependencies = [self.controllers[dep_name] for dep_name in deps]
                 controller = kls(controller_name, dependencies)
-                
+                rospy.loginfo("started")
                 if controller.initialize():
                     controller.start()
                     self.controllers[controller_name] = controller
