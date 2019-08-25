@@ -94,6 +94,7 @@ class SerialProxy():
         self.motor_states_pub = rospy.Publisher('motor_states/%s' % self.port_namespace, MotorStateList, queue_size=None)
         self.diagnostics_pub = rospy.Publisher('/diagnostics', DiagnosticArray, queue_size=None)
 
+
     def connect(self):
         try:
             self.dxl_io = dynamixel_io.DynamixelIO(self.port_name, self.baud_rate, self.readback_echo)
